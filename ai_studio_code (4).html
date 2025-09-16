@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Downloader (Client-Side Only)</title>
+    <style>
+        /* CSS (style.css se copy kiya gaya) */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 25px;
+        }
+
+        .input-group {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap; /* For responsiveness */
+        }
+
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            font-size: 16px;
+            outline: none;
+            min-width: 200px; /* Ensure input is not too small */
+        }
+
+        button {
+            padding: 12px 20px;
+            background-color: #ff0000; /* YouTube red */
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #cc0000;
+        }
+
+        @media (max-width: 480px) {
+            .input-group {
+                flex-direction: column;
+            }
+            input[type="text"] {
+                border-radius: 4px;
+                margin-bottom: 10px;
+            }
+            button {
+                border-radius: 4px;
+            }
+        }
+
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .message.success {
+            color: green;
+        }
+
+        .message.error {
+            color: red;
+        }
+
+        .message.info {
+            color: blue;
+        }
+
+        .video-info {
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            text-align: left;
+        }
+
+        .video-info h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .video-info img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .video-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .download-options {
+            margin-top: 20px;
+        }
+
+        .download-options h3 {
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .download-options a {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+
+        .download-options a:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Downloader</h1>
+        <p>Kripya YouTube video URL dalein aur download karein.</p>
+        <div class="input-group">
+            <input type="text" id="videoUrl" placeholder="YouTube video URL paste karein">
+            <button id="downloadBtn">Details Lao</button>
+        </div>
+        <div id="message" class="message"></div>
+        <div id="videoInfo" class="video-info">
+            <!-- Video information aur download links yahan display honge -->
+        </div>
+    </div>
+
+    <script>
+        // JavaScript (script.js se copy kiya gaya)
+        document.addEventListener('DOMContentLoaded', () => {
+            const videoUrlInput = document.getElementById('videoUrl');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const messageDiv = document.getElementById('message');
+            const videoInfoDiv = document.getElementById('videoInfo');
+
+            // !! IMPORTANT !!
+            // Apne backend server ka URL yahan dalein.
+            // Agar aapka backend http://localhost:3000 par chal raha hai:
+            const BACKEND_API_URL = 'http://localhost:3000/api/download';
+            // Agar aapka backend kisi aur domain par hai:
+            // const BACKEND_API_URL = 'https://apka-server-domain.com/api/download';
+
+
+            downloadBtn.addEventListener('click', async () => {
+                const url = videoUrlInput.value.trim();
+                messageDiv.textContent = '';
+                videoInfoDiv.innerHTML = ''; // Clear previous info
+
+                if (!url) {
+                    messageDiv.textContent = 'Kripya YouTube video URL dalein.';
+                    messageDiv.className = 'message error';
+                    return;
+                }
+
+                // Basic YouTube URL validation
+                if (!url.includes('youtube.com/watch?v=') && !url.includes('youtu.be/')) {
+                    messageDiv.textContent = 'Kripya ek valid YouTube video URL dalein.';
+                    messageDiv.className = 'message error';
+                    return;
+                }
+
+                messageDiv.textContent = 'Video details fetch kar rahe hain...';
+                messageDiv.className = 'message info'; // Blue for info
+
+                try {
+                    // Fetch request to your backend API
+                    const response = await fetch(`${BACKEND_API_URL}?url=${encodeURIComponent(url)}`);
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (data && data.formats && data.formats.length > 0) {
+                        messageDiv.textContent = 'Video details mil gaye! Download options niche hain.';
+                        messageDiv.className = 'message success';
+
+                        videoInfoDiv.innerHTML = `
+                            <h2>${data.title}</h2>
+                            <img src="${data.thumbnail}" alt="Video Thumbnail">
+                            <p><strong>Duration:</strong> ${data.duration}</p>
+                            <div class="download-options">
+                                <h3>Download Options:</h3>
+                                ${data.formats.map(format => `
+                                    <a href="${format.url}" target="_blank" download="${data.title.replace(/[^a-z0-9]/gi, '_')}-${format.quality}.${format.container || 'mp4'}">
+                                        ${format.quality} (${format.container || 'Unknown'})
+                                    </a>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        messageDiv.textContent = 'Video details ya download options nahi mil paye. Kripya URL check karein ya baad mein try karein.';
+                        messageDiv.className = 'message error';
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching video info:', error);
+                    messageDiv.textContent = `Kuchh galti ho gayi: ${error.message}. Kripya dobara try karein ya URL check karein.`;
+                    messageDiv.className = 'message error';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
